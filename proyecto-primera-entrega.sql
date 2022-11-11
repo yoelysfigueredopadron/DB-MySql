@@ -67,6 +67,7 @@ CREATE TABLE Notas (
 CREATE TABLE Profesiones (
 	Id_Profesion int NOT NULL AUTO_INCREMENT,
     Profesion varchar(50),
+    Cod_Profesion varchar(12),
     PRIMARY KEY (Id_Profesion)
 );
 
