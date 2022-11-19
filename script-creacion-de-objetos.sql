@@ -1,10 +1,12 @@
 -- Crearemos la base de datos Universidad
-CREATE DATABASE IF NOT EXISTS Universidad;
+CREATE DATABASE IF NOT EXISTS `universidad`;
 
-USE Universidad;
+USE `universidad`;
 
 -- creación de tablas
-CREATE TABLE IF NOT EXISTS alumnos (
+DROP TABLE IF EXISTS `alumnos`;
+
+CREATE TABLE IF NOT EXISTS `alumnos` (
     id_alumno INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     dni_alumno VARCHAR(8) NOT NULL,
     nombres VARCHAR(50) NOT NULL,
@@ -17,25 +19,33 @@ CREATE TABLE IF NOT EXISTS alumnos (
     direccion VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS carreras (
+DROP TABLE IF EXISTS `carreras`;
+
+CREATE TABLE IF NOT EXISTS `carreras` (
 	cod_carrera VARCHAR(10) NOT NULL UNIQUE PRIMARY KEY,
 	carrera VARCHAR(100),    
     monto DECIMAL(11, 2)
 );
 
-CREATE TABLE IF NOT EXISTS periodos_academicos (
+DROP TABLE IF EXISTS `periodos_academicos`;
+
+CREATE TABLE IF NOT EXISTS `periodos_academicos` (
 	id_periodo_academico INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     periodo VARCHAR(20),
     fecha_inicio DATE,
     fecha_final DATE
 );
 
-CREATE TABLE IF NOT EXISTS profesiones (
+DROP TABLE IF EXISTS `profesiones`;
+
+CREATE TABLE IF NOT EXISTS `profesiones` (
     cod_profesion VARCHAR(10) NOT NULL UNIQUE PRIMARY KEY ,
 	profesion VARCHAR(50)
 );
 
-CREATE TABLE IF NOT EXISTS asignaturas (
+DROP TABLE IF EXISTS `asignaturas`;
+
+CREATE TABLE IF NOT EXISTS `asignaturas` (
 	cod_asignatura VARCHAR(10) NOT NULL UNIQUE PRIMARY KEY,    
     asignatura VARCHAR(50) NOT NULL,
     unidades INT NOT NULL,
@@ -46,7 +56,9 @@ CREATE TABLE IF NOT EXISTS asignaturas (
         ON UPDATE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS matricula_alumnos (
+DROP TABLE IF EXISTS `matricula_alumnos`;
+
+CREATE TABLE IF NOT EXISTS `matricula_alumnos` (
 	id_matricula INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     cod_carrera VARCHAR(10) NOT NULL,
     id_periodo_academico INT NOT NULL,
@@ -66,7 +78,9 @@ CREATE TABLE IF NOT EXISTS matricula_alumnos (
         ON UPDATE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS notas (
+DROP TABLE IF EXISTS `notas`;
+
+CREATE TABLE IF NOT EXISTS `notas` (
 	id_nota INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     id_matricula INT NOT NULL,
     cod_asignatura VARCHAR(10) NOT NULL,
@@ -81,7 +95,9 @@ CREATE TABLE IF NOT EXISTS notas (
         ON UPDATE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS profesores (
+DROP TABLE IF EXISTS `profesores`;
+
+CREATE TABLE IF NOT EXISTS `profesores` (
     id_profesor INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     dni_profesor VARCHAR(8) NOT NULL,
     nombres VARCHAR(50) NOT NULL,
@@ -99,7 +115,9 @@ CREATE TABLE IF NOT EXISTS profesores (
         ON UPDATE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS profesores_asignaturas (
+DROP TABLE IF EXISTS `profesores_asignaturas`;
+
+CREATE TABLE IF NOT EXISTS `profesores_asignaturas` (
 	id_profesor_asignatura INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     id_profesor INT NOT NULL,
     cod_asignatura VARCHAR(10) NOT NULL,
@@ -116,6 +134,63 @@ CREATE TABLE IF NOT EXISTS profesores_asignaturas (
         REFERENCES periodos_academicos(id_periodo_academico)
         ON DELETE CASCADE
         ON UPDATE CASCADE
+);
+
+-- Tablas de logs
+DROP TABLE IF EXISTS `logs_insert_students`;
+
+CREATE TABLE IF NOT EXISTS `logs_insert_students` (
+    id_alumno INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    dni_alumno VARCHAR(8) NOT NULL,
+    nombres VARCHAR(50) NOT NULL,
+    apellidos VARCHAR(50) NOT NULL,
+    genero CHAR(1),
+    estado_civil VARCHAR(15),
+    fecha_nacimiento DATE NOT NULL,
+    telefono VARCHAR(15),
+    correo VARCHAR(50),
+    direccion VARCHAR(100) NOT NULL,
+    user_insercion VARCHAR(100),
+    fecha_insercion DATE,
+    hora_insercion TIME    
+);
+
+DROP TABLE IF EXISTS `logs_update_students`;
+        
+CREATE TABLE IF NOT EXISTS `logs_update_students` (
+	id_log_update_student INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    id_alumno INT NOT NULL,
+    dni_alumno VARCHAR(8) NOT NULL,
+    nombres VARCHAR(50) NOT NULL,
+    apellidos VARCHAR(50) NOT NULL,
+    genero CHAR(1),
+    estado_civil VARCHAR(15),
+    fecha_nacimiento DATE NOT NULL,
+    telefono VARCHAR(15),
+    correo VARCHAR(50),
+    direccion VARCHAR(100) NOT NULL,
+    user_insercion VARCHAR(100),
+    fecha_insercion DATE,
+    hora_insercion TIME    
+);
+
+DROP TABLE IF EXISTS `logs_delete_students`;
+
+CREATE TABLE IF NOT EXISTS `logs_delete_students` (
+	id_log_delete_student INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    id_alumno INT NOT NULL,
+    dni_alumno VARCHAR(8) NOT NULL,
+    nombres VARCHAR(50) NOT NULL,
+    apellidos VARCHAR(50) NOT NULL,
+    genero CHAR(1),
+    estado_civil VARCHAR(15),
+    fecha_nacimiento DATE NOT NULL,
+    telefono VARCHAR(15),
+    correo VARCHAR(50),
+    direccion VARCHAR(100) NOT NULL,
+    user_insercion VARCHAR(100),
+    fecha_insercion DATE,
+    hora_insercion TIME    
 );
 
 -- Creación de vistas
@@ -150,6 +225,34 @@ JOIN asignaturas asg ON (pa.cod_asignatura = asg.cod_asignatura)
 JOIN notas n ON (asg.cod_asignatura = n.cod_asignatura)
 JOIN matricula_alumnos ma ON (n.id_matricula = ma.id_matricula)
 JOIN alumnos a ON (ma.id_alumno = a.id_alumno);
+
+-- Creacion de triggers
+DROP TRIGGER IF EXISTS `tr_after_insert_new_student`;
+
+CREATE TRIGGER `tr_after_insert_new_student`
+AFTER INSERT ON `alumnos`
+FOR EACH ROW
+INSERT INTO `logs_insert_students`
+VALUES (NEW.id_alumno, NEW.dni_alumno, NEW.nombres , NEW.apellidos, NEW.genero, NEW.estado_civil, NEW.fecha_nacimiento,
+		NEW.telefono, NEW.correo, NEW.direccion, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME());
+        
+DROP TRIGGER IF EXISTS `tr_before_student_update`;
+
+CREATE TRIGGER `tr_before_student_update`
+BEFORE UPDATE ON `alumnos`
+FOR EACH ROW
+INSERT INTO `logs_update_students`
+VALUES (NULL, OLD.id_alumno, OLD.dni_alumno, OLD.nombres , OLD.apellidos, OLD.genero, OLD.estado_civil, OLD.fecha_nacimiento,
+		OLD.telefono, OLD.correo, OLD.direccion, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME());
+        
+DROP TRIGGER IF EXISTS `tr_before_student_delete`;
+
+CREATE TRIGGER `tr_before_student_delete`
+BEFORE DELETE ON `alumnos`
+FOR EACH ROW
+INSERT INTO `logs_delete_students`
+VALUES (NULL, OLD.id_alumno, OLD.dni_alumno, OLD.nombres , OLD.apellidos, OLD.genero, OLD.estado_civil, OLD.fecha_nacimiento,
+		OLD.telefono, OLD.correo, OLD.direccion, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME());
 
 DELIMITER $$
 
