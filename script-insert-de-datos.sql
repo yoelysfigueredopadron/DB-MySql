@@ -169,12 +169,7 @@ VALUES
     (null, '15031983', 'Maria', 'Funez', 'F', 'mariafunez1@gmail.com', '97989786', 'Casada', 'LPS', '19850818', '20160120'),
 	(null, '08011990', 'Victor', 'Acosta', 'M', 'acosvict@yahoo.com', '88989986', 'Soltero', 'LPS', '19900621', '20170912'),
     (null, '01011968', 'Juan', 'Zavala', 'M', 'jzavala28@yahoo.com', '77889886', 'Casado', 'LED', '19680529', '20170903');
- 
--- En caso de que al correr la query que sigue "INSERT INTO profesores_asignaturas ..." devuelve un error con el siguiente mensaje
--- "ERROR 1452: Cannot add or update a child row: a foreign key constraint fails" 
--- Entonces ejecutar la linea que esta comentada antes de la query para que la misma se pueda ejecutar de manera existosa. SET FOREIGN_KEY_CHECKS=0;
-
--- SET FOREIGN_KEY_CHECKS=0;    
+    
 INSERT INTO profesores_asignaturas
 VALUES
 	(null, 1, 'MM1', 2),
