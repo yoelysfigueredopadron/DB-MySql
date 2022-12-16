@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS `profesores` (
     genero CHAR(1),
     correo VARCHAR(50),
     telefono VARCHAR(15),    
-    estado_civil VARCHAR(10),
+    estado_civil VARCHAR(15),
     cod_profesion VARCHAR(10) NOT NULL,
     fecha_nacimiento DATE NOT NULL,
     fecha_ingreso DATE NOT NULL,
@@ -205,37 +205,49 @@ CREATE TABLE IF NOT EXISTS `logs_delete_students` (
 );
 
 -- Creación de vistas
+-- Mostramos la lista de profesores con sus profesiones
 CREATE OR REPLACE VIEW vs_profesores_profesion AS
-SELECT ps.nombres, ps.apellidos, pn.profesion
-FROM profesores ps
-JOIN profesiones pn ON (ps.cod_profesion = pn.cod_profesion);
+SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, PN.profesion AS Profesion
+FROM profesores AS PS
+JOIN profesiones AS PN ON (PS.cod_profesion = PN.cod_profesion);
 
+-- Mostramos la lista de profesores con las asignaturas que imparten
 CREATE OR REPLACE VIEW vs_profesores_asignaturas AS
-SELECT ps.nombres, ps.apellidos, a.asignatura
-FROM profesores ps
-JOIN profesores_asignaturas pa ON (ps.id_profesor = pa.id_profesor)
-JOIN asignaturas a ON (pa.cod_asignatura = a.cod_asignatura);
+SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, A.asignatura AS Asignatua
+FROM profesores AS PS
+JOIN profesores_asignaturas AS PA ON (PS.id_profesor = PA.id_profesor)
+JOIN asignaturas AS A ON (PA.cod_asignatura = A.cod_asignatura);
 
+-- Mostramos listado de alumnos en las carreras que estudian
 CREATE OR REPLACE VIEW vs_alumnos_carreras AS
-SELECT a.nombres, a.apellidos, c.carrera
-FROM alumnos a
-JOIN matricula_alumnos ma ON (a.id_alumno = ma.id_alumno)
-JOIN carreras c ON (ma.cod_carrera = c.cod_carrera);
+SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, C.carrera AS Carrera
+FROM alumnos AS A
+JOIN matricula_alumnos AS MA ON (A.id_alumno = MA.id_alumno)
+JOIN carreras AS C ON (MA.cod_carrera = C.cod_carrera);
 
+-- Se muestra un listado de alumnos con sus respectivas notas por asignatura
 CREATE OR REPLACE VIEW vs_alumnos_notas AS
-SELECT a.nombres, a.apellidos, n.nota
-FROM alumnos a
-JOIN matricula_alumnos ma ON (a.id_alumno = ma.id_alumno)
-JOIN notas n ON (n.id_matricula = ma.id_matricula);
+SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, ASG.asignatura AS Asignatura, N.nota AS Nota
+FROM alumnos AS A
+JOIN matricula_alumnos AS MA ON (A.id_alumno = MA.id_alumno)
+JOIN notas AS N ON (N.id_matricula = MA.id_matricula)
+JOIN asignaturas AS ASG ON (ASG.cod_asignatura = N.cod_asignatura);
 
-CREATE OR REPLACE VIEW vs_profesores_asignaturas_alumnos AS
-SELECT p.Nombres AS Nombre_Profesor, p.Apellidos AS Apellido_Profesor, asg.Asignatura, a.Nombres AS Nombre_Alumno, a.Apellidos AS Apellido_Alumno
-FROM profesores p
-JOIN profesores_asignaturas pa ON (p.id_profesor = pa.id_profesor)
-JOIN asignaturas asg ON (pa.cod_asignatura = asg.cod_asignatura)
-JOIN notas n ON (asg.cod_asignatura = n.cod_asignatura)
-JOIN matricula_alumnos ma ON (n.id_matricula = ma.id_matricula)
-JOIN alumnos a ON (ma.id_alumno = a.id_alumno);
+-- Mostramos cantidad de alumnos que tiene un profesor por asignatura
+CREATE OR REPLACE VIEW vs_cantidad_alumnos_por_asignatura AS
+SELECT CONCAT_WS(' ', P.Nombres, P.Apellidos) AS Profesor, ASG.asignatura AS Asignatura, COUNT(MA.id_matricula) AS 'Cantidad Alumnos'
+FROM profesores AS P
+JOIN profesores_asignaturas AS PA ON (P.id_profesor = PA.id_profesor)
+JOIN asignaturas AS ASG ON (PA.cod_asignatura = ASG.cod_asignatura)
+JOIN notas AS N ON (ASG.cod_asignatura = N.cod_asignatura)
+JOIN matricula_alumnos AS MA ON (N.id_matricula = MA.id_matricula)
+GROUP BY Asignatura;
+
+-- Mostramos la cantidad de asignaturas que tiene una carrera universitaria
+CREATE OR REPLACE VIEW vs_asignaturas_carrera AS
+SELECT C.carrera, COUNT(A.cod_asignatura) AS 'Cantidad Asignaturas'
+FROM carreras AS C INNER JOIN asignaturas AS A ON C.cod_carrera = A.cod_carrera
+GROUP BY C.carrera;
 
 -- Creacion de triggers
 DROP TRIGGER IF EXISTS `tr_after_insert_new_student`;
@@ -308,7 +320,7 @@ DROP PROCEDURE IF EXISTS `sp_get_lista_estudiantes`$$
 CREATE PROCEDURE `sp_get_lista_estudiantes` (IN field VARCHAR(20), IN my_order VARCHAR(4))
 
 -- creamos el parametro de ordenamiento de la lista de estudiantes. 
--- Se podrá ordenar por cualquier campo de la tabla alumnos, ejemplo: id_alumno, dni_alumno, nombres, apellidos, etc
+-- Se podrá ordenar por cualquier campo de la tabla alumnos, ejemplo: id_alumno, dni_alumno, nombres, apellidos, genero, estado_civil, fecha_nacimiento, telefono, correo, direccion
 BEGIN
 	IF field <> '' THEN
 		SET @ordenar_lista = concat_ws(' ', 'order by', field, my_order);
@@ -327,62 +339,73 @@ BEGIN
 END$$
 
 -- Procedimiento almacenado que agrega estudiantes a la tabla alumnos
-DROP PROCEDURE IF EXISTS `sp_set_estudiantes`$$
+DROP PROCEDURE IF EXISTS `sp_set_alumno`$$
 
-CREATE PROCEDURE `sp_set_estudiantes` (IN dniAlumno VARCHAR(8), IN nombres VARCHAR(50), IN apellidos VARCHAR(50), IN genero CHAR(1), IN estadoCivil VARCHAR(15),
+CREATE PROCEDURE `sp_set_alumno` (IN dniAlumno VARCHAR(8), IN nombres VARCHAR(50), IN apellidos VARCHAR(50), IN genero CHAR(1), IN estadoCivil VARCHAR(15),
 									   IN fechaNacimiento DATE, IN telefono VARCHAR(15), IN correo VARCHAR(50), IN direccion VARCHAR(100))
 BEGIN
-    INSERT INTO alumnos (dmi_alumno, nombres, apellidos, genero, estado_civil, fecha_nacimiento, telefono, correo, direccion)
+    INSERT INTO alumnos (dni_alumno, nombres, apellidos, genero, estado_civil, fecha_nacimiento, telefono, correo, direccion)
     VALUES (dniAlumno, nombres, apellidos, genero, estadoCivil, fechaNacimiento, telefono, correo, direccion);
+END$$
+
+-- Procedimiento almacenado que agrega un profesor a la tabla profesores
+-- Se deberá agregar un codigo de profesion 'cod_profesion' de la tabla profesiones para el campo con el mismo nombre en la tabla profesores
+DROP PROCEDURE IF EXISTS `sp_set_profesor`$$
+
+CREATE PROCEDURE `sp_set_profesor` (IN dniProfesor VARCHAR(8), IN nombres VARCHAR(50), IN apellidos VARCHAR(50), IN genero CHAR(1), IN correo VARCHAR(50),
+									IN telefono VARCHAR(15), IN estadoCivil VARCHAR(15), IN codProfesion VARCHAR(10), IN fechaNacimiento DATE, IN fechaIngreso DATE)
+BEGIN
+    INSERT INTO profesores (dni_profesor, nombres, apellidos, genero, correo, telefono, estado_civil, cod_profesion, fecha_nacimiento, fecha_ingreso)
+    VALUES (dniProfesor, nombres, apellidos, genero, correo, telefono, estadoCivil, codProfesion, fechaNacimiento, fechaIngreso);
 END$$
 
 DELIMITER ;
 
 -- Creando roles
-DROP ROLE IF EXISTS 'read_permissions', 'write_permissions', 'developer_permissions';
+-- DROP ROLE IF EXISTS 'read_permissions', 'write_permissions', 'developer_permissions';
 
-CREATE ROLE 'read_permissions', 'write_permissions', 'developer_permissions';
+-- CREATE ROLE 'read_permissions', 'write_permissions', 'developer_permissions';
 
 -- Agregando permisos a los roles
-GRANT ALL ON universidad.* TO 'developer_permissions';
-GRANT SELECT ON universidad.* TO 'read_permissions';
-GRANT INSERT, UPDATE ON universidad.* TO 'write_permissions';
+-- GRANT ALL ON universidad.* TO 'developer_permissions';
+-- GRANT SELECT ON universidad.* TO 'read_permissions';
+-- GRANT INSERT, UPDATE ON universidad.* TO 'write_permissions';
 
 -- creando usuarios desarrolladores que tendran todos los permisos
-CREATE USER 'yoelys_dev1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'dev1pass';
-CREATE USER 'yoelys_dev2'@'localhost' IDENTIFIED WITH mysql_native_password BY 'dev2pass';
-CREATE USER 'yoelys_dev3'@'localhost' IDENTIFIED WITH mysql_native_password BY 'dev3pass';
+-- CREATE USER 'yoelys_dev1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'dev1pass';
+-- CREATE USER 'yoelys_dev2'@'localhost' IDENTIFIED WITH mysql_native_password BY 'dev2pass';
+-- CREATE USER 'yoelys_dev3'@'localhost' IDENTIFIED WITH mysql_native_password BY 'dev3pass';
 
 -- creando usuarios que solo tendrán permisos de lectura
-CREATE USER 'yoelys_readonly1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readonly_user1pass';
-CREATE USER 'yoelys_readonly2'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readonly_user2pass';
-CREATE USER 'yoelys_readonly3'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readonly_user3pass';
+-- CREATE USER 'yoelys_readonly1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readonly_user1pass';
+-- CREATE USER 'yoelys_readonly2'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readonly_user2pass';
+-- CREATE USER 'yoelys_readonly3'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readonly_user3pass';
 
 -- creando usuarios que tendrán permisos de lectura y escritura
-CREATE USER 'yoelys_readwrite1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readwrite1_userpass';
-CREATE USER 'yoelys_readwrite2'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readwrite2_userpass';
-CREATE USER 'yoelys_readwrite3'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readwrite3_userpass';
+-- CREATE USER 'yoelys_readwrite1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readwrite1_userpass';
+-- CREATE USER 'yoelys_readwrite2'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readwrite2_userpass';
+-- CREATE USER 'yoelys_readwrite3'@'localhost' IDENTIFIED WITH mysql_native_password BY 'readwrite3_userpass';
 
 -- Agregando usuarios a grupos(roles)
-GRANT 'developer_permissions' TO 'yoelys_dev1'@'localhost', 'yoelys_dev2'@'localhost', 'yoelys_dev3'@'localhost';
-GRANT 'read_permissions' TO 'yoelys_readonly1'@'localhost', 'yoelys_readonly2'@'localhost', 'yoelys_readonly3'@'localhost';
-GRANT 'write_permissions' TO 'yoelys_readwrite1'@'localhost', 'yoelys_readwrite2'@'localhost', 'yoelys_readwrite3'@'localhost';
+-- GRANT 'developer_permissions' TO 'yoelys_dev1'@'localhost', 'yoelys_dev2'@'localhost', 'yoelys_dev3'@'localhost';
+-- GRANT 'read_permissions' TO 'yoelys_readonly1'@'localhost', 'yoelys_readonly2'@'localhost', 'yoelys_readonly3'@'localhost';
+-- GRANT 'write_permissions' TO 'yoelys_readwrite1'@'localhost', 'yoelys_readwrite2'@'localhost', 'yoelys_readwrite3'@'localhost';
 
 -- activamos los roles por defecto para cuando se logen los usuarios
-SET DEFAULT ROLE ALL TO
-	'yoelys_dev1'@'localhost',
-    'yoelys_dev2'@'localhost',
-    'yoelys_dev3'@'localhost',
-    'yoelys_readonly1'@'localhost',
-    'yoelys_readonly2'@'localhost',
-    'yoelys_readonly3'@'localhost',
-	'yoelys_readwrite1'@'localhost',
-    'yoelys_readwrite2'@'localhost',
-    'yoelys_readwrite3'@'localhost';
+-- SET DEFAULT ROLE ALL TO
+-- 	'yoelys_dev1'@'localhost',
+--    'yoelys_dev2'@'localhost',
+--    'yoelys_dev3'@'localhost',
+--    'yoelys_readonly1'@'localhost',
+--    'yoelys_readonly2'@'localhost',
+--    'yoelys_readonly3'@'localhost',
+--    'yoelys_readwrite1'@'localhost',
+--    'yoelys_readwrite2'@'localhost',
+--    'yoelys_readwrite3'@'localhost';
 
 -- revisamos que se hallan creados los usuarios en la base de datos 'mysql' en la tabla 'user'
-SELECT * FROM mysql.user
-WHERE user LIKE 'yoelys%';
+-- SELECT * FROM mysql.user
+-- WHERE user LIKE 'yoelys%';
 
 -- Eliminamos los usuarios
 -- DROP USER 'yoelys_dev1'@'localhost',
