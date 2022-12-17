@@ -139,9 +139,10 @@ CREATE TABLE IF NOT EXISTS `profesores_asignaturas` (
 );
 
 -- Tablas de logs
-DROP TABLE IF EXISTS `logs_insert_students`;
+DROP TABLE IF EXISTS `logs_insert_alumnos`;
 
-CREATE TABLE IF NOT EXISTS `logs_insert_students` (
+-- Guardamos en logs la insercion de los datos en la tabla "alumnos" ademas del usuario que realizo la insercion, fecha y hora de la misma.
+CREATE TABLE IF NOT EXISTS `logs_insert_alumnos` (
     id_alumno INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     dni_alumno VARCHAR(8) NOT NULL,
     nombres VARCHAR(50) NOT NULL,
@@ -157,10 +158,11 @@ CREATE TABLE IF NOT EXISTS `logs_insert_students` (
     hora_insercion TIME    
 );
 
-DROP TABLE IF EXISTS `logs_update_students`;
-        
-CREATE TABLE IF NOT EXISTS `logs_update_students` (
-	id_log_update_student INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+DROP TABLE IF EXISTS `logs_update_alumnos`;
+
+-- Guardamos los logs del usuario que realizo una actualizacion (user, fecha y hora) de los datos pudiendo verificar el dato que existia "old" y cual fue el nuevo dato ingresado en cada campo en la tabla "alumnos".
+CREATE TABLE IF NOT EXISTS `logs_update_alumnos` (
+	id_log_update_alumno INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     id_alumno INT NOT NULL,
     old_dni_alumno VARCHAR(8) NOT NULL,
     old_nombres VARCHAR(50) NOT NULL,
@@ -171,9 +173,9 @@ CREATE TABLE IF NOT EXISTS `logs_update_students` (
     old_telefono VARCHAR(15),
     old_correo VARCHAR(50),
     old_direccion VARCHAR(100) NOT NULL,
-    user_insercion VARCHAR(100),
-    fecha_insercion DATE,
-    hora_insercion TIME,
+    user_actualizo VARCHAR(100),
+    fecha_actualizo DATE,
+    hora_actualizo TIME,
     new_dni_alumno VARCHAR(8) NOT NULL,
     new_nombres VARCHAR(50) NOT NULL,
     new_apellidos VARCHAR(50) NOT NULL,
@@ -185,10 +187,12 @@ CREATE TABLE IF NOT EXISTS `logs_update_students` (
     new_direccion VARCHAR(100) NOT NULL
 );
 
-DROP TABLE IF EXISTS `logs_delete_students`;
+DROP TABLE IF EXISTS `logs_delete_alumnos`;
 
-CREATE TABLE IF NOT EXISTS `logs_delete_students` (
-	id_log_delete_student INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+-- Guardamos los logs del usuario que elimino informacion(registros) de la tabla alumnos. Vamos a consevar todos los datos existentes del registo ademas del usuario,
+-- fecha y hora en la que se realizo la acción en la tabla "alumnos".
+CREATE TABLE IF NOT EXISTS `logs_delete_alumnos` (
+	id_log_delete_alumno INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
     id_alumno INT NOT NULL,
     dni_alumno VARCHAR(8) NOT NULL,
     nombres VARCHAR(50) NOT NULL,
@@ -199,84 +203,141 @@ CREATE TABLE IF NOT EXISTS `logs_delete_students` (
     telefono VARCHAR(15),
     correo VARCHAR(50),
     direccion VARCHAR(100) NOT NULL,
+    user_borro VARCHAR(100),
+    fecha_borrado DATE,
+    hora_borrado TIME    
+);
+
+DROP TABLE IF EXISTS `logs_insert_profesores`;
+
+-- Guardamos en los logs los datos insertados en la tabla "profesores" ademas del usuario, fecha y hora en que se insertaron los datos.
+CREATE TABLE IF NOT EXISTS `logs_insert_profesores` (
+    id_profesor INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    dni_profesor VARCHAR(8) NOT NULL,
+    nombres VARCHAR(50) NOT NULL,
+    apellidos VARCHAR(50) NOT NULL,
+    genero CHAR(1),
+    correo VARCHAR(50),
+    telefono VARCHAR(15),
+    estado_civil VARCHAR(15),
+    cod_profesion VARCHAR(10),    
+    fecha_nacimiento DATE NOT NULL,
+    fecha_ingreso DATE NOT NULL,
     user_insercion VARCHAR(100),
     fecha_insercion DATE,
     hora_insercion TIME    
 );
 
--- Creación de vistas
--- Mostramos la lista de profesores con sus profesiones
-CREATE OR REPLACE VIEW vs_profesores_profesion AS
-SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, PN.profesion AS Profesion
-FROM profesores AS PS
-JOIN profesiones AS PN ON (PS.cod_profesion = PN.cod_profesion);
+DROP TABLE IF EXISTS `logs_update_profesores`;
 
--- Mostramos la lista de profesores con las asignaturas que imparten
-CREATE OR REPLACE VIEW vs_profesores_asignaturas AS
-SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, A.asignatura AS Asignatua
-FROM profesores AS PS
-JOIN profesores_asignaturas AS PA ON (PS.id_profesor = PA.id_profesor)
-JOIN asignaturas AS A ON (PA.cod_asignatura = A.cod_asignatura);
+-- Guardamos los logs del usuario que realizo una actualizacion en la tabla "profesores" pudiendo verificar el dato que existia "old"
+-- y cual fue el nuevo dato "new" ingresado en cada campo teniendo un control de los datos actualizados.
+CREATE TABLE IF NOT EXISTS `logs_update_profesores` (
+	id_log_update_profesor INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    id_profesor INT NOT NULL,
+    old_dni_profesor VARCHAR(8) NOT NULL,
+    old_nombres VARCHAR(50) NOT NULL,
+    old_apellidos VARCHAR(50) NOT NULL,
+    old_genero CHAR(1),
+    old_correo VARCHAR(50),
+    old_telefono VARCHAR(15),
+    old_estado_civil VARCHAR(15),
+    old_cod_profesion varchar(10),
+    old_fecha_nacimiento DATE NOT NULL,
+    old_fecha_ingreso DATE NOT NULL,
+    user_actualizo VARCHAR(100),
+    fecha_actualizo DATE,
+    hora_actualizo TIME,
+    new_dni_profesor VARCHAR(8) NOT NULL,
+    new_nombres VARCHAR(50) NOT NULL,
+    new_apellidos VARCHAR(50) NOT NULL,
+    new_genero CHAR(1),
+    new_correo VARCHAR(50),
+    new_telefono VARCHAR(15),
+    new_estado_civil VARCHAR(15),
+    new_cod_profesion VARCHAR(10),
+    new_fecha_nacimiento DATE NOT NULL,
+    new_fecha_ingreso DATE NOT NULL
+);
 
--- Mostramos listado de alumnos en las carreras que estudian
-CREATE OR REPLACE VIEW vs_alumnos_carreras AS
-SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, C.carrera AS Carrera
-FROM alumnos AS A
-JOIN matricula_alumnos AS MA ON (A.id_alumno = MA.id_alumno)
-JOIN carreras AS C ON (MA.cod_carrera = C.cod_carrera);
+DROP TABLE IF EXISTS `logs_delete_profesores`;
 
--- Se muestra un listado de alumnos con sus respectivas notas por asignatura
-CREATE OR REPLACE VIEW vs_alumnos_notas AS
-SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, ASG.asignatura AS Asignatura, N.nota AS Nota
-FROM alumnos AS A
-JOIN matricula_alumnos AS MA ON (A.id_alumno = MA.id_alumno)
-JOIN notas AS N ON (N.id_matricula = MA.id_matricula)
-JOIN asignaturas AS ASG ON (ASG.cod_asignatura = N.cod_asignatura);
-
--- Mostramos cantidad de alumnos que tiene un profesor por asignatura
-CREATE OR REPLACE VIEW vs_cantidad_alumnos_por_asignatura AS
-SELECT CONCAT_WS(' ', P.Nombres, P.Apellidos) AS Profesor, ASG.asignatura AS Asignatura, COUNT(MA.id_matricula) AS 'Cantidad Alumnos'
-FROM profesores AS P
-JOIN profesores_asignaturas AS PA ON (P.id_profesor = PA.id_profesor)
-JOIN asignaturas AS ASG ON (PA.cod_asignatura = ASG.cod_asignatura)
-JOIN notas AS N ON (ASG.cod_asignatura = N.cod_asignatura)
-JOIN matricula_alumnos AS MA ON (N.id_matricula = MA.id_matricula)
-GROUP BY Asignatura;
-
--- Mostramos la cantidad de asignaturas que tiene una carrera universitaria
-CREATE OR REPLACE VIEW vs_asignaturas_carrera AS
-SELECT C.carrera, COUNT(A.cod_asignatura) AS 'Cantidad Asignaturas'
-FROM carreras AS C INNER JOIN asignaturas AS A ON C.cod_carrera = A.cod_carrera
-GROUP BY C.carrera;
+-- Guardamos los logs del usuario que elimino informacion(registros) de la tabla "profesores". Vamos a consevar todos los datos existentes del registo ademas del usuario,
+-- fecha y hora en la que se realizo la acción de eliminacion.
+CREATE TABLE IF NOT EXISTS `logs_delete_profesores` (
+	id_log_delete_profesor INT NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,
+    id_profesor INT NOT NULL,
+    dni_profesor VARCHAR(8) NOT NULL,
+    nombres VARCHAR(50) NOT NULL,
+    apellidos VARCHAR(50) NOT NULL,
+    genero CHAR(1),
+    correo VARCHAR(50),
+    telefono VARCHAR(15),
+    estado_civil VARCHAR(15),
+    cod_profesion VARCHAR(10),    
+    fecha_nacimiento DATE NOT NULL,
+    fecha_ingreso DATE NOT NULL,
+    user_borro VARCHAR(100),
+    fecha_borrado DATE,
+    hora_borrado TIME    
+);
 
 -- Creacion de triggers
-DROP TRIGGER IF EXISTS `tr_after_insert_new_student`;
+DROP TRIGGER IF EXISTS `tr_after_insert_nuevo_alumno`;
 
-CREATE TRIGGER `tr_after_insert_new_student`
+CREATE TRIGGER `tr_after_insert_nuevo_alumno`
 AFTER INSERT ON `alumnos`
 FOR EACH ROW
-INSERT INTO `logs_insert_students`
+INSERT INTO `logs_insert_alumnos`
 VALUES (NEW.id_alumno, NEW.dni_alumno, NEW.nombres , NEW.apellidos, NEW.genero, NEW.estado_civil, NEW.fecha_nacimiento,
 		NEW.telefono, NEW.correo, NEW.direccion, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME());
         
-DROP TRIGGER IF EXISTS `tr_before_student_update`;
+DROP TRIGGER IF EXISTS `tr_before_update_alumno`;
 
-CREATE TRIGGER `tr_before_student_update`
+CREATE TRIGGER `tr_before_update_alumno`
 BEFORE UPDATE ON `alumnos`
 FOR EACH ROW
-INSERT INTO `logs_update_students`
+INSERT INTO `logs_update_alumnos`
 VALUES (NULL, OLD.id_alumno, OLD.dni_alumno, OLD.nombres , OLD.apellidos, OLD.genero, OLD.estado_civil, OLD.fecha_nacimiento,
 		OLD.telefono, OLD.correo, OLD.direccion, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME(), NEW.dni_alumno, NEW.nombres , NEW.apellidos,
         NEW.genero, NEW.estado_civil, NEW.fecha_nacimiento, NEW.telefono, NEW.correo, NEW.direccion);
         
-DROP TRIGGER IF EXISTS `tr_before_student_delete`;
+DROP TRIGGER IF EXISTS `tr_before_delete_alumno`;
 
-CREATE TRIGGER `tr_before_student_delete`
+CREATE TRIGGER `tr_before_delete_alumno`
 BEFORE DELETE ON `alumnos`
 FOR EACH ROW
-INSERT INTO `logs_delete_students`
+INSERT INTO `logs_delete_alumnos`
 VALUES (NULL, OLD.id_alumno, OLD.dni_alumno, OLD.nombres , OLD.apellidos, OLD.genero, OLD.estado_civil, OLD.fecha_nacimiento,
 		OLD.telefono, OLD.correo, OLD.direccion, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME());
+        
+DROP TRIGGER IF EXISTS `tr_after_insert_nuevo_profesor`;
+
+CREATE TRIGGER `tr_after_insert_nuevo_profesor`
+AFTER INSERT ON `profesores`
+FOR EACH ROW
+INSERT INTO `logs_insert_profesores`
+VALUES (NEW.id_profesor, NEW.dni_profesor, NEW.nombres , NEW.apellidos, NEW.genero, NEW.correo, NEW.telefono, NEW.estado_civil,
+		NEW.cod_profesion, NEW.fecha_nacimiento, NEW.fecha_ingreso, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME());
+
+DROP TRIGGER IF EXISTS `tr_before_update_profesor`;
+
+CREATE TRIGGER `tr_before_update_profesor`
+BEFORE UPDATE ON `profesores`
+FOR EACH ROW
+INSERT INTO `logs_update_profesores`
+VALUES (NULL, OLD.id_profesor, OLD.dni_profesor, OLD.nombres , OLD.apellidos, OLD.genero, OLD.correo, OLD.telefono, OLD.estado_civil, OLD.cod_profesion,
+		OLD.fecha_nacimiento, OLD.fecha_ingreso, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME(), NEW.dni_profesor, NEW.nombres, NEW.apellidos,
+        NEW.genero, NEW.correo, NEW.telefono, NEW.estado_civil, NEW.cod_profesion, NEW.fecha_nacimiento, NEW.fecha_ingreso);
+
+DROP TRIGGER IF EXISTS `tr_before_delete_profesor`;
+
+CREATE TRIGGER `tr_before_delete_profesor`
+BEFORE DELETE ON `profesores`
+FOR EACH ROW
+INSERT INTO `logs_delete_profesores`
+VALUES (NULL, OLD.id_profesor, OLD.dni_profesor, OLD.nombres, OLD.apellidos, OLD.genero, OLD.correo, OLD.telefono, OLD.estado_civil, OLD.cod_profesion,
+		OLD.fecha_nacimiento, OLD.fecha_ingreso, SESSION_USER(), CURRENT_DATE(), CURRENT_TIME());        
 
 DELIMITER $$
 
@@ -307,7 +368,7 @@ BEGIN
 	DECLARE result DECIMAL(3,1);
 
 	SET result = (
-					SELECT round(AVG(nota),1) AS promedio_estudiante
+					SELECT round(AVG(nota),1) AS 'Promedio Estudiante'
                     FROM notas
                     WHERE Id_Matricula = matricula_id
 				  );
@@ -359,7 +420,110 @@ BEGIN
     VALUES (dniProfesor, nombres, apellidos, genero, correo, telefono, estadoCivil, codProfesion, fechaNacimiento, fechaIngreso);
 END$$
 
+DROP PROCEDURE IF EXISTS `sp_get_promedio_estudiante`$$
+
+-- obtenemos el promedio de un estudiante especificando su id de matricula, ejemplo (1, 2, 3)
+CREATE PROCEDURE `sp_get_promedio_estudiante` (IN idMatricula INT)
+
+BEGIN
+	IF EXISTS(SELECT id_matricula FROM matricula_alumnos WHERE id_matricula = idMatricula) THEN        
+        SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, C.carrera AS Carrera, promedio_estudiante(idMatricula) AS Promedio
+		FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
+						  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
+						  INNER JOIN notas AS N ON MA.id_matricula = N.id_matricula
+		WHERE MA.id_matricula = idMatricula
+		GROUP BY MA.id_matricula;
+	ELSE
+		SELECT CONCAT('Error: ', 'No se ha introducido un id de matricula valido.') AS 'Error';
+    END IF;    
+END$$
+
 DELIMITER ;
+
+-- Creación de vistas
+-- Mostramos la lista de profesores con sus profesiones
+CREATE OR REPLACE VIEW vs_profesores_profesion AS
+SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, PN.profesion AS Profesion
+FROM profesores AS PS
+JOIN profesiones AS PN ON (PS.cod_profesion = PN.cod_profesion);
+
+-- Mostramos la lista de profesores con las asignaturas que imparten
+CREATE OR REPLACE VIEW vs_profesores_asignaturas AS
+SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, A.asignatura AS Asignatua
+FROM profesores AS PS
+JOIN profesores_asignaturas AS PA ON (PS.id_profesor = PA.id_profesor)
+JOIN asignaturas AS A ON (PA.cod_asignatura = A.cod_asignatura);
+
+-- Mostramos listado de alumnos en las carreras y la carreras que estudian
+CREATE OR REPLACE VIEW vs_alumnos_carreras AS
+SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, C.carrera AS Carrera
+FROM alumnos AS A
+JOIN matricula_alumnos AS MA ON (A.id_alumno = MA.id_alumno)
+JOIN carreras AS C ON (MA.cod_carrera = C.cod_carrera);
+
+-- Se muestra un listado de alumnos con sus respectivas notas por asignatura
+CREATE OR REPLACE VIEW vs_alumnos_notas AS
+SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, ASG.asignatura AS Asignatura, N.nota AS Nota
+FROM alumnos AS A
+JOIN matricula_alumnos AS MA ON (A.id_alumno = MA.id_alumno)
+JOIN notas AS N ON (N.id_matricula = MA.id_matricula)
+JOIN asignaturas AS ASG ON (ASG.cod_asignatura = N.cod_asignatura);
+
+-- Mostramos cantidad de alumnos que tiene un profesor por asignatura
+CREATE OR REPLACE VIEW vs_cantidad_alumnos_por_asignatura AS
+SELECT CONCAT_WS(' ', P.Nombres, P.Apellidos) AS Profesor, ASG.asignatura AS Asignatura, COUNT(MA.id_matricula) AS 'Cantidad Alumnos'
+FROM profesores AS P
+JOIN profesores_asignaturas AS PA ON (P.id_profesor = PA.id_profesor)
+JOIN asignaturas AS ASG ON (PA.cod_asignatura = ASG.cod_asignatura)
+JOIN notas AS N ON (ASG.cod_asignatura = N.cod_asignatura)
+JOIN matricula_alumnos AS MA ON (N.id_matricula = MA.id_matricula)
+GROUP BY Asignatura;
+
+-- Mostramos la cantidad de asignaturas que tiene una carrera universitaria
+CREATE OR REPLACE VIEW vs_asignaturas_carrera AS
+SELECT C.carrera, COUNT(A.cod_asignatura) AS 'Cantidad Asignaturas'
+FROM carreras AS C INNER JOIN asignaturas AS A ON C.cod_carrera = A.cod_carrera
+GROUP BY C.carrera;
+
+-- En la vista motramos más información de los estudiantes matriculados en las carreras
+CREATE OR REPLACE VIEW vs_alumnos_matriculados AS
+SELECT A.dni_alumno, A.nombres, A.apellidos, A.genero, C.carrera
+FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
+				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera;
+
+-- Mostramos la cantidad de alumnos que estan matriculados en las carreras universitarias
+CREATE OR REPLACE VIEW vs_cantidad_alumnos_matriculados AS
+SELECT C.carrera, COUNT(MA.id_matricula) AS 'Cantidad Alumnos'
+FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
+				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
+GROUP BY C.carrera;
+
+-- Mostramos el total de alumnos matriculados en la universidad agrupados por genero y por carrera universitaria
+CREATE OR REPLACE VIEW vs_agrupados_por_genero_y_carrera AS
+SELECT C.carrera, A.genero, COUNT(A.id_alumno) AS 'Total'
+FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
+				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
+GROUP BY A.genero, C.carrera;
+
+-- Mostramos el total de alumnos matriculados en la univerdad agrupados por genero
+CREATE OR REPLACE VIEW vs_matriculados_por_genero AS
+SELECT A.genero, COUNT(A.id_alumno) AS 'Total'
+FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
+				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
+GROUP BY A.genero;
+
+-- Listado de carreras con IVA precio final, utilizamos una funcion definida por mi con el nombre "precio_iva" a la misma le pasamos dos parametros (precio, iva)
+CREATE OR REPLACE VIEW vs_carreras_precio AS
+SELECT C.carrera, CONCAT('$ ', precio_iva(C.monto, 21)) AS 'Precio Totasl a Pagar'
+FROM carreras AS C;
+
+-- Mostramos el listado de estudiantes por carreras con sus promedios
+CREATE OR REPLACE VIEW vs_promedio_carreras AS
+SELECT CONCAT_WS(' ', A.nombres, A.apellidos) AS Alumno, C.carrera AS Carrera, round(AVG(N.nota),1) AS 'Promedio Estudiante'
+FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
+				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
+                  INNER JOIN notas AS N ON MA.id_matricula = N.id_matricula
+GROUP BY MA.id_matricula;
 
 -- Creando roles
 -- DROP ROLE IF EXISTS 'read_permissions', 'write_permissions', 'developer_permissions';
