@@ -174,8 +174,8 @@ CREATE TABLE IF NOT EXISTS `logs_update_alumnos` (
     old_correo VARCHAR(50),
     old_direccion VARCHAR(100) NOT NULL,
     user_actualizo VARCHAR(100),
-    fecha_actualizo DATE,
-    hora_actualizo TIME,
+    fecha_actualizado DATE,
+    hora_actualizado TIME,
     new_dni_alumno VARCHAR(8) NOT NULL,
     new_nombres VARCHAR(50) NOT NULL,
     new_apellidos VARCHAR(50) NOT NULL,
@@ -449,7 +449,7 @@ JOIN profesiones AS PN ON (PS.cod_profesion = PN.cod_profesion);
 
 -- Mostramos la lista de profesores con las asignaturas que imparten
 CREATE OR REPLACE VIEW vs_profesores_asignaturas AS
-SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, A.asignatura AS Asignatua
+SELECT CONCAT_WS(' ', PS.nombres, PS.apellidos) AS Profesor, A.asignatura AS Asignatura
 FROM profesores AS PS
 JOIN profesores_asignaturas AS PA ON (PS.id_profesor = PA.id_profesor)
 JOIN asignaturas AS A ON (PA.cod_asignatura = A.cod_asignatura);
@@ -481,40 +481,40 @@ GROUP BY Asignatura;
 
 -- Mostramos la cantidad de asignaturas que tiene una carrera universitaria
 CREATE OR REPLACE VIEW vs_asignaturas_carrera AS
-SELECT C.carrera, COUNT(A.cod_asignatura) AS 'Cantidad Asignaturas'
+SELECT C.carrera AS Carrera, COUNT(A.cod_asignatura) AS 'Cantidad Asignaturas'
 FROM carreras AS C INNER JOIN asignaturas AS A ON C.cod_carrera = A.cod_carrera
 GROUP BY C.carrera;
 
 -- En la vista motramos más información de los estudiantes matriculados en las carreras
 CREATE OR REPLACE VIEW vs_alumnos_matriculados AS
-SELECT A.dni_alumno, A.nombres, A.apellidos, A.genero, C.carrera
+SELECT A.dni_alumno AS 'DNI Alumno', A.nombres AS Nombre, A.apellidos AS Apellido, A.genero AS Genero, C.carrera AS Carrera
 FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
 				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera;
 
 -- Mostramos la cantidad de alumnos que estan matriculados en las carreras universitarias
 CREATE OR REPLACE VIEW vs_cantidad_alumnos_matriculados AS
-SELECT C.carrera, COUNT(MA.id_matricula) AS 'Cantidad Alumnos'
+SELECT C.carrera AS Carrera, COUNT(MA.id_matricula) AS 'Cantidad Alumnos'
 FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
 				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
 GROUP BY C.carrera;
 
 -- Mostramos el total de alumnos matriculados en la universidad agrupados por genero y por carrera universitaria
 CREATE OR REPLACE VIEW vs_agrupados_por_genero_y_carrera AS
-SELECT C.carrera, A.genero, COUNT(A.id_alumno) AS 'Total'
+SELECT C.carrera AS Carrera, A.genero AS Genero, COUNT(A.id_alumno) AS 'Total'
 FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
 				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
 GROUP BY A.genero, C.carrera;
 
 -- Mostramos el total de alumnos matriculados en la univerdad agrupados por genero
 CREATE OR REPLACE VIEW vs_matriculados_por_genero AS
-SELECT A.genero, COUNT(A.id_alumno) AS 'Total'
+SELECT A.genero AS Genero, COUNT(A.id_alumno) AS 'Total'
 FROM alumnos AS A INNER JOIN matricula_alumnos AS MA ON A.id_alumno = MA.id_alumno
 				  INNER JOIN carreras AS C ON MA.cod_carrera = C.cod_carrera
 GROUP BY A.genero;
 
 -- Listado de carreras con IVA precio final, utilizamos una funcion definida por mi con el nombre "precio_iva" a la misma le pasamos dos parametros (precio, iva)
 CREATE OR REPLACE VIEW vs_carreras_precio AS
-SELECT C.carrera, CONCAT('$ ', precio_iva(C.monto, 21)) AS 'Precio Totasl a Pagar'
+SELECT C.carrera AS Carrera, CONCAT('$ ', precio_iva(C.monto, 21)) AS 'Precio Total a Pagar'
 FROM carreras AS C;
 
 -- Mostramos el listado de estudiantes por carreras con sus promedios
